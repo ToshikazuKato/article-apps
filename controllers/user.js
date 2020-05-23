@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Post = require('../models/Post');
 const Follow = require('../models/Follow');
 const jwt = require('jsonwebtoken');
+const sendgrid = require('@sendgrid/mail');
+sendgrid.setApiKey(process.env.SENDGRIDAPIKEY);
 
 exports.apiGetPostsByUsername = async function(req,res){
 	try{
@@ -110,6 +112,18 @@ exports.logout = function(req,res){
 exports.register = function(req,res){
 	let user = new User(req.body);
 	user.register().then(()=>{
+		console.log('registered user',user);
+		sendgrid.send({
+			to: user.data.email,
+			from: 'toshikazu.horioka@gmail.com',
+			subject: 'Registered successfully',
+			text: 'You successfully registered article-apps.',
+			html: 'You successfully registered article-apps. <br> <a href="https://article-apps.herokuapp.com/" target="_blank">Visit article-apps</a>',
+		}).then(()=>{
+			console.log("Email sent");
+		}).catch((err)=>{
+			console.log(err.response.body.errors, 'email by sendgrid err');
+		});
 		req.session.user = {username:user.data.username,avatar:user.avatar,_id:user.data._id};
 		req.session.save(() => {
 			res.redirect('/');
